@@ -1,32 +1,100 @@
-name: Setup and Build
-description: Generic setup action
-inputs:
-  pnpm-version:
-    required: false
-    type: string
-    default: '9.4.0'
-  node-version:
-    required: false
-    type: string
-    default: '20.15.1'
+name: Bolt.new CI/CD Workflow
 
-runs:
-  using: composite
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
-  steps:
-    - uses: pnpm/action-setup@v4
-      with:
-        version: ${{ inputs.pnpm-version }}
-        run_install: false
+jobs:
+  setup:
+    runs-on: ubuntu-latest
 
-    - name: Set Node.js version to ${{ inputs.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
-        cache: pnpm
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
 
-    - name: Install dependencies and build project
-      shell: bash
-      run: |
-        pnpm install
-        pnpm run build
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'  # Updated to use Node.js 18.x
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'  # Updated to use Node.js 18.x
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build the project
+        run: pnpm run build
+
+      - name: Upload production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: build/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build
+
+      - name: Deploy to production
+        run: |
+          npm install -g netlify-cli
+          netlify deploy --prod --dir=build
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'  # Updated to use Node.js 18.x
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm
+
+      - name: Run linter
+        run: pnpm run lint
