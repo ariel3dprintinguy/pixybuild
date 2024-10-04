@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: build
-          path: build/
+          path: build/  # Ensure the correct path for your build directory
 
   deploy:
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
+          publish_dir: ./build  # Ensure this path matches where the build output goes
 
   lint:
     runs-on: ubuntu-latest
